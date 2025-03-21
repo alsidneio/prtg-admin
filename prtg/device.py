@@ -1,3 +1,4 @@
+from hamcrest import none
 import typer
 import config
 from typing import List, Optional
@@ -60,7 +61,7 @@ def list(
     """
     List Devices within a PRTG Core
 
-    returns a list fof devices IDs
+    returns a list of IDs and total count of device on core. 
     """
     tags_included = False
     token = config.get_token(core)
@@ -69,15 +70,17 @@ def list(
 
     # + f"?content=devices&output=json&count=50000&columns=objid,name,tags&apitoken={token}"
 
-    if ids is not None:
+    #TODO: raise an exception if name and id have values. 
+    
+    if ids:
         for id in ids:
             # url = url + f"&filter_objid={id}"
-            if "filter_objid" in url_params:
+            if url_params["filter_objid"] is not None:
                 url_params["filter_objid"].append(id)
             else:
                 url_params["filter_objid"] = [id]
 
-    #TODO: do an exception for an unauthorized  code 
+    # TODO: do an exception for an unauthorized  code
     devices = local_base.PRTG_Get_request(url, url_params)["devices"]
     if tags is not None:
         tags_included = True
@@ -232,7 +235,7 @@ def delete_tags(
 @app.command(no_args_is_help=True)
 def get_tags(
     core: Annotated[str, typer.Argument(help="PRTG core to connect to")],
-    device_id: Annotated[str, typer.Argument(help=" objid of the device")],
+    device_ids: Annotated[str, typer.Argument(help=" objid of the device")],
     quiet: Annotated[
         bool, typer.Option("--quiet", "-q", help="Prevents tag status to terminal")
     ] = False,
@@ -244,28 +247,31 @@ def get_tags(
     url = local_base.base_url(core, action="get_prop")
     # f"getobjectproperty.htm?id={device_id}&name=tags&apitoken={token}"
 
-    url_params = QueryParams(id=device_id, apitoken=token, name="tags")
+    device_ids = device_ids.split()
 
-    # This returns an xml response that needs to be parsed
-    tags_xml = local_base.PRTG_Get_request(url, asdict(url_params))
+    for device_id in device_ids:
+        url_params = QueryParams(id=device_id, apitoken=token, name="tags")
 
-    tags = xmltodict.parse(tags_xml)["prtg"]
+        # This returns an xml response that needs to be parsed
+        tags_xml = local_base.PRTG_Get_request(url, asdict(url_params))
+        tags = xmltodict.parse(tags_xml)["prtg"]
 
-    # TODO: this try/catch  needs to be a function of its own with `getobjectproperty`
-    try:
-        # TODO: write a testcase for this happy path
-        tags = tags["result"]
+        # TODO: this try/catch  needs to be a function of its own with `getobjectproperty`
+        try:
+            # TODO: write a testcase for this happy path
+            tags = tags["result"]
 
-    except KeyError:
-        # TODO: Write a testcase for this error
-        print(f"[bold red]{tags['error']}")
-        tags = None
-    else:
-        # Status to terminal
-        if not quiet:
-            print(f"Tags for Device ID: {device_id}")
-            print(tags)
-
+        except KeyError:
+            # TODO: Write a testcase for this error
+            print(f"[bold red]{tags['error']}")
+            tags = None
+        else:
+            # Status to terminal
+            if not quiet:
+                print(f"Tags for Device ID: {device_id}")
+                print(tags)
+    # * currently will only return last set of tags parsed
+    # * Need to determine downstream effect  of returning a dictionary
     return tags
 
 

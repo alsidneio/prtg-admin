@@ -1,0 +1,8 @@
+site_name: PRTG admin tool docs
+
+theme:
+  name: "material"
+
+plugins:
+  - mkdocstrings
+  

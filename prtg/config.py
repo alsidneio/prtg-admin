@@ -11,6 +11,8 @@ configdir = user_config_dir()
 configfile = "prtg_admin.cfg"
 config_file_path = f"{configdir}/{configfile}"
 
+# TODO: allow the option to set a default core to query from 
+# TODO: create functionality to allow context/ core switching
 
 def create_config_file():
 

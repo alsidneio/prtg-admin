@@ -140,12 +140,12 @@ def list(
     elif tags is not None:
         for tag in tags:
             # url = url + f"&filter_tags=@tag({tag})"
-            url_params["filter_tags"] = "@tag({tag}"
+            # url_params["filter_tags"] = "@tag({tag}"
 
-            if "filter_tags" in url_params:
-                url_params["filter_tags"].append("@tag({tag})")
+            if url_params["filter_tags"]:
+                url_params["filter_tags"].append(f"@tag({tag})")
             else:
-                url_params["filter_tags"] = ["@tag({tag})"]
+                url_params["filter_tags"] = [f"@tag({tag})"]
 
     if paused:
         url_params["filter_status"] = ["7", "8"]
