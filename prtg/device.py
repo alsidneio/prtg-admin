@@ -9,6 +9,7 @@ from enum import Enum
 from rich import print
 import xmltodict
 from dataclasses import dataclass, asdict
+import re
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -39,12 +40,11 @@ class QueryParams:
 # TODO: split --tags options into multi
 # TODO: if object ID is given then that overides
 # TODO: add an option to filter by device group
-# TODO: list still returning all devices even with a given object id filtered
 
 
 @app.command(no_args_is_help=True)
 def list(
-    core: Annotated[str, typer.Argument(help="PRTG core to connect to")],
+    core: Annotated[str, typer.Argument(help="PRTG core to query")],
     tags: Annotated[
         List[str], typer.Option(help="Tags to used to filter query")
     ] = None,
@@ -69,10 +69,9 @@ def list(
     url_params = asdict(QueryParams(columns="objid,name,tags", apitoken=token))
 
     # + f"?content=devices&output=json&count=50000&columns=objid,name,tags&apitoken={token}"
-
-    #TODO: raise an exception if name and id have values. 
-    
+      
     if ids:
+        
         for id in ids:
             # url = url + f"&filter_objid={id}"
             if url_params["filter_objid"] is not None:
@@ -80,7 +79,6 @@ def list(
             else:
                 url_params["filter_objid"] = [id]
 
-    # TODO: do an exception for an unauthorized  code
     devices = local_base.PRTG_Get_request(url, url_params)["devices"]
     if tags is not None:
         tags_included = True
@@ -135,8 +133,8 @@ def search(
 
     devices = local_base.PRTG_Get_request(url, url_params)["devices"]
 
-    filtered_devices = [device for device in devices if keyword in device["name"]]
-
+    filtered_devices = [device for device in devices if re.match(keyword, device["name"], re.IGNORECASE)]
+    
     device_ids = [device["objid"] for device in filtered_devices]
 
     if output == Output.table:
